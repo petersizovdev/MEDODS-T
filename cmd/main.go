@@ -3,14 +3,23 @@ package main
 import (
 	"fmt"
 	"net/http"
+
+	"github.com/petersizovdev/MEDODS-T.git/internal/db"
+	"github.com/petersizovdev/MEDODS-T.git/internal/handlers"
 )
 
-func welcomeHandler(w http.ResponseWriter, r *http.Request) {
-	fmt.Fprintf(w, "Hello, Server 3000")
-}
 
 func main() {
-	http.HandleFunc("/", welcomeHandler)
+	database:=db.Connect()
+	if database == nil{
+		panic("db is unable!")
+	}
+	defer database.Close()
+
+	userHandler := &handlers.UserHandler{DB: database}
+
+	http.HandleFunc("/", handlers.WelcomeHandler)
+	http.HandleFunc("/users", userHandler.GetUsers)
 
 	go func() {
 		err := http.ListenAndServe(":3000", nil)
@@ -19,8 +28,6 @@ func main() {
 			return
 		}
 	}()
-
 	fmt.Println("Server is running on :3000")
-
 	select {}
 }
