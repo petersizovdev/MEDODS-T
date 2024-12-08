@@ -110,9 +110,9 @@ func (a *AuthHandler) RefreshTokens(w http.ResponseWriter, r *http.Request) {
 	}
 	secretString := os.Getenv("JWT_SECRET")
 
-	token, err := jwt.parse(accessToken, func(token *jwt.Token) (interface{}, error) {
+	token, err := jwt.Parse(accessToken, func(token *jwt.Token) (interface{}, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
-			return nil, fmt.Println("Signing error")
+			return nil, fmt.Errorf("Signing error")
 		}
 		return []byte(secretString), nil
 	})
@@ -127,12 +127,6 @@ func (a *AuthHandler) RefreshTokens(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	newAccessToken, err := generateAccessToken(userID, ip)
-	if err != nil {
-		fmt.Println("Access token generation error:", err)
-		return
-	}
-
 	userID := claims["user_id"].(string)
 	ip := claims["ip"].(string)
 	currentIP := r.RemoteAddr
@@ -141,7 +135,7 @@ func (a *AuthHandler) RefreshTokens(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var storedTokenHash []byte
-	err = h.DB.QueryRow("SELECT token_hash FROM refresh_tokens WHERE user_id = $1", userID).Scan(&storedTokenHash)
+	err = a.DB.QueryRow("SELECT token_hash FROM refresh_tokens WHERE user_id = $1", userID).Scan(&storedTokenHash)
 	if err != nil {
 		fmt.Println("Invalid refresh token:", err)
 		return
@@ -153,7 +147,7 @@ func (a *AuthHandler) RefreshTokens(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	accessToken, err := generateAccessToken(userID, currentIP)
+	newAccessToken, err := generateAccessToken(userID, currentIP)
 	if err != nil {
 		fmt.Println("Failed to generate new access token:", err)
 		return
@@ -171,7 +165,7 @@ func (a *AuthHandler) RefreshTokens(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	_, err = h.DB.Exec("UPDATE refresh_tokens SET token_hash = $1 WHERE user_id = $2", newHashedRefreshToken, userID)
+	_, err = a.DB.Exec("UPDATE refresh_tokens SET token_hash = $1 WHERE user_id = $2", newHashedRefreshToken, userID)
 	if err != nil {
 		fmt.Println("Failed to update refresh token:", err)
 		return

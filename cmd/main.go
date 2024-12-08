@@ -24,19 +24,20 @@ func main() {
 	defer database.Close()
 
 	userHandler := &handlers.UserHandler{DB: database}
+	authHandler := &handlers.AuthHandler{DB: database} 
 
 	http.HandleFunc("/", handlers.WelcomeHandler)
 	http.HandleFunc("/users", userHandler.GetUsers)
-	http.HandleFunc("/token", handlers.AuthHandler.GenerateTokens)
-	http.HandleFunc("/refresh", handlers.AuthHandler.RefreshTokens)
+	http.HandleFunc("/token", authHandler.GenerateTokens)
+	http.HandleFunc("/refresh", authHandler.RefreshTokens)
 
 	go func() {
-		err := http.ListenAndServe(port, nil)
+		err := http.ListenAndServe(":"+port, nil)
 		if err != nil {
 			fmt.Println(err)
 			return
 		}
 	}()
 	fmt.Printf("Server is running on :%s \n", port)
-	select {}
+	<-make(chan struct{})
 }
