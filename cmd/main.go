@@ -28,6 +28,7 @@ func main() {
 
 	http.HandleFunc("/", handlers.WelcomeHandler)
 	http.HandleFunc("/users", userHandler.GetUsers)
+	http.HandleFunc("/users/create", userHandler.CreateUser)
 	http.HandleFunc("/token", authHandler.GenerateTokens)
 	http.HandleFunc("/refresh", authHandler.RefreshTokens)
 
