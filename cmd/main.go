@@ -3,15 +3,22 @@ package main
 import (
 	"fmt"
 	"net/http"
+	"os"
 
 	"github.com/petersizovdev/MEDODS-T.git/internal/db"
 	"github.com/petersizovdev/MEDODS-T.git/internal/handlers"
+	"github.com/petersizovdev/MEDODS-T.git/pkg/env"
 )
 
-
 func main() {
-	database:=db.Connect()
-	if database == nil{
+	err := env.LoadEnv(".env")
+	if err != nil {
+		fmt.Println("Err to load .env", err)
+	}
+	port := os.Getenv("PORT")
+
+	database := db.Connect()
+	if database == nil {
 		panic("db is unable!")
 	}
 	defer database.Close()
@@ -20,14 +27,16 @@ func main() {
 
 	http.HandleFunc("/", handlers.WelcomeHandler)
 	http.HandleFunc("/users", userHandler.GetUsers)
+	http.HandleFunc("/token", handlers.AuthHandler.GenerateTokens)
+	http.HandleFunc("/refresh", handlers.AuthHandler.RefreshTokens)
 
 	go func() {
-		err := http.ListenAndServe(":3000", nil)
+		err := http.ListenAndServe(port, nil)
 		if err != nil {
 			fmt.Println(err)
 			return
 		}
 	}()
-	fmt.Println("Server is running on :3000")
+	fmt.Printf("Server is running on :%s \n", port)
 	select {}
 }
